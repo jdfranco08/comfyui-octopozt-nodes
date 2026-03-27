@@ -250,6 +250,27 @@ class OctopoztAdSystem:
             nano_prompt = f"[Prompt generation failed: {e}]"
             debug_lines.append(f"CALL 3 ERROR: {e}")
 
+        # ── Ensure exactly num_variations prompts ─────────────────────────────
+        parts = [p.strip() for p in nano_prompt.split("*") if p.strip()]
+        debug_lines.append(f"Variations received: {len(parts)} / {num_variations} requested")
+
+        if len(parts) < num_variations:
+            # Build a simple fallback prompt using asset_desc + copy_text
+            fallback = (
+                f"The EXACT same person from the reference image. "
+                f"Standing in a clean modern lifestyle setting, holding the product naturally. "
+                f"Bright natural lighting, medium shot, shallow depth of field. "
+                f"Ad copy text '{copy_text}' integrated naturally — no background box, no banner. "
+                f"Brand logo top right corner, clean and unmodified."
+            )
+            while len(parts) < num_variations:
+                parts.append(fallback)
+                debug_lines.append(f"Fallback prompt injected for variation {len(parts)}")
+
+        # Trim if too many
+        parts = parts[:num_variations]
+        nano_prompt = " * ".join(parts)
+
         debug_log = "\n".join(debug_lines)
         return (nano_prompt, asset_desc, brand_style, debug_log)
 
