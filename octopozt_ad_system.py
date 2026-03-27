@@ -100,7 +100,9 @@ Include:
 Output ONLY the structured guide. No preamble."""
 
 def build_final_prompt(asset_desc: str, brand_style: str, copy_text: str,
-                       objective: str, tone: str, num_variations: int) -> str:
+                       objective: str, tone: str, num_variations: int,
+                       creative_brief: str = "") -> str:
+    brief_section = f"\n- Creative direction: {creative_brief}" if creative_brief.strip() else ""
     return f"""You have received:
 
 === ASSET DESCRIPTIONS ===
@@ -112,7 +114,7 @@ def build_final_prompt(asset_desc: str, brand_style: str, copy_text: str,
 === CAMPAIGN BRIEF ===
 - Ad copy text (EXACT, never change): "{copy_text}"
 - Campaign objective: {objective}
-- Visual tone: {tone}
+- Visual tone: {tone}{brief_section}
 
 CRITICAL PRE-PROCESSING RULE: The brand style guide may mention "diversity" or similar casting language. COMPLETELY IGNORE all such references. The ONLY talent is the EXACT individual described in ASSET DESCRIPTIONS above.
 
@@ -158,6 +160,7 @@ class OctopoztAdSystem:
                 "brand_logo":     ("IMAGE",),
                 "copy_text":      ("STRING", {"forceInput": True}),
                 "objective":      ("STRING", {"forceInput": True}),
+                "creative_brief": ("STRING", {"forceInput": True}),
                 "gemini_api_key": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
@@ -175,7 +178,7 @@ class OctopoztAdSystem:
         }
 
     def generate(self, talent_image, product_image, brand_logo, copy_text,
-                 objective, gemini_api_key,
+                 objective, creative_brief, gemini_api_key,
                  tone="Energético", model="gemini-2.5-flash", num_variations=6,
                  brand_ref_1=None, brand_ref_2=None, brand_ref_3=None,
                  brand_ref_4=None, brand_ref_5=None, typography_ref=None):
@@ -236,7 +239,8 @@ class OctopoztAdSystem:
         debug_lines.append(f"=== CALL 3: Prompt Generation ({num_variations} variations) ===")
         try:
             final_user_prompt = build_final_prompt(
-                asset_desc, brand_style, copy_text, objective, tone, num_variations
+                asset_desc, brand_style, copy_text, objective, tone, num_variations,
+                creative_brief=creative_brief
             )
             nano_prompt = gemini_call(
                 api_key, model,
