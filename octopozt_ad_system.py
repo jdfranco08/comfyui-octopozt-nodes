@@ -321,6 +321,19 @@ class OctopoztBatchImages:
 
         pad_val = {"black": 0.0, "white": 1.0, "gray": 0.5}.get(pad_color, 0.0)
 
+        # Normalize all tensors to RGB (3 channels) — drop alpha if present
+        def to_rgb(t):
+            if t.shape[3] == 4:
+                # Composite RGBA onto pad_color background
+                rgb = t[..., :3]
+                alpha = t[..., 3:4]
+                bg = torch.full_like(rgb, pad_val)
+                return rgb * alpha + bg * (1.0 - alpha)
+            return t
+
+        tensors = [to_rgb(t) for t in tensors]
+        c = 3  # always RGB after normalization
+
         padded = []
         for t in tensors:
             _, h, w, _ = t.shape
