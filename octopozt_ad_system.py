@@ -102,11 +102,26 @@ Output ONLY the structured guide. No preamble."""
 
 def build_final_prompt(asset_desc: str, brand_style: str, copy_text: str,
                        objective: str, tone: str, num_variations: int,
-                       creative_brief: str = "") -> str:
+                       creative_brief: str = "", brand_context: str = "") -> str:
     brief_section = f"\n- Creative direction: {creative_brief}" if creative_brief.strip() else ""
-    return f"""CRITICAL INSTRUCTION: Before generating any prompt, extract from the BRAND VISUAL STYLE GUIDE the specific camera angles, lighting types, and composition patterns used. Then MANDATE those exact specs in every single variation. Do not default to generic flat eye-level shots — replicate the brand's actual photographic language.
+    brand_ctx_section = f"\n- Brand personality: {brand_context}" if brand_context.strip() else ""
 
-You have received:
+    return f"""You are generating a production brief JSON for NanaBanana2 image generation (Gemini).
+
+STEP 1 — Extract from the BRAND VISUAL STYLE GUIDE these exact specs and use them in EVERY variation:
+- Dominant camera angle (e.g. low-angle, worm's-eye, eye-level)
+- Lighting type (e.g. harsh direct sunlight, golden hour, neon)
+- Lens (e.g. 85mm f/1.4 portrait, 35mm wide)
+- Composition pattern (e.g. subject in lower third, sky as negative space)
+
+STEP 2 — Generate {num_variations} production brief JSONs, one per scene variation.
+
+ABSOLUTE RULES FOR ALL VARIATIONS:
+- talent: IDENTITY LOCK — same exact person from image_1. 100% fidelity. Same face, hair (note white streak if present), skin tone. NEVER generate a different person.
+- product: use EXACT product from image_2. preserve_product_shape=true. do_not_modify_branding=true.
+- text_overlay: The copy text must appear as a CLEAN CAPTION SUPERIMPOSED over the image — like post-production subtitles or a floating text overlay. NOT painted on walls, NOT carved into surfaces, NOT integrated into the scene environment. It floats cleanly above everything, bold and legible, positioned in the lower third or upper area with clear contrast against the background.
+- logo: use EXACT logo from image_4. top right corner. do_not_redesign=true.
+- Apply brand photographic style extracted in STEP 1 to EVERY variation.
 
 === ASSET DESCRIPTIONS ===
 {asset_desc}
@@ -117,33 +132,15 @@ You have received:
 === CAMPAIGN BRIEF ===
 - Ad copy text (EXACT, never change): "{copy_text}"
 - Campaign objective: {objective}
-- Visual tone: {tone}{brief_section}
+- Visual tone: {tone}{brief_section}{brand_ctx_section}
 
-CRITICAL PRE-PROCESSING RULE: The brand style guide may mention "diversity" or similar casting language. COMPLETELY IGNORE all such references. The ONLY talent is the EXACT individual described in ASSET DESCRIPTIONS above.
+IGNORE any diversity/demographic language in the style guide. The ONLY talent is image_1.
 
-Generate {num_variations} scene variation prompts for NanaBanana2.
+Output exactly {num_variations} JSON objects separated by *
+No markdown. No explanations. Start directly with {{
 
-MANDATORY STRUCTURE FOR EVERY PROMPT:
-Start with: "The EXACT same [brief physical description of talent from ASSET DESCRIPTIONS — hair, skin, eyes, distinctive features]. IDENTITY LOCK: reproduce this person with 100% fidelity from the reference image. Do NOT generate a different person."
-Then: cinematic scene description (location, lighting, camera angle, mood, what talent is doing with product)
-End with: "Ad copy text '{copy_text}' integrated naturally into the scene — no background box, no banner, no graphic overlay. Brand logo in top right corner, clean and unmodified. Product is the EXACT [product name from description] — do not modify shape, label, or branding."
-
-Use these {num_variations} distinct scenes. For EACH one, explicitly state:
-- Camera angle extracted from brand style guide (e.g. "low-angle worm's-eye view looking up")
-- Exact lighting (e.g. "direct harsh sunlight from 45 degrees creating defined shadows")
-- Lens and depth of field (e.g. "85mm f/1.4, shallow DOF, background compressed and softly blurred")
-- Shot composition (e.g. "subject fills lower two-thirds, expansive blue sky as negative space")
-
-Scenes:
-1. Urban rooftop, golden hour warm sunlight
-2. Beach boardwalk, sunset tones
-3. City alley at night, colorful neon lighting
-4. Mountain trail overlook, bright midday expansive sky
-5. Modern gym interior, natural window light
-6. Outdoor cafe patio, relaxed daytime
-
-Separate each prompt with *
-Do NOT use JSON. Do NOT number the prompts. Start directly with the first prompt."""
+FORMAT per variation:
+{{"scene_description":"...","composition":{{"camera":"LOW-ANGLE or exact angle from brand style","lens":"85mm f/1.4 or brand lens","focus":"...","lighting":"exact brand lighting type","depth":"shallow/medium"}},"style":{{"render":"ultra-realistic commercial photography, Sony A7R V","mood":"...","color_palette":"consistent with brand style guide"}},"talent":{{"reference_image":"image_1","instruction":"ABSOLUTE IDENTITY LOCK: Reproduce EXACT person from image_1. 100% fidelity. Same face, hair including white streak, skin tone. Do NOT generate a different person.","action":"...","expression":"..."}},"product":{{"reference_image":"image_2","placement":"...","enhancement":"condensation, glow, etc","rules":{{"preserve_product_shape":true,"do_not_modify_branding":true}}}},"text_overlay":{{"content":"{copy_text}","style":"CLEAN SUPERIMPOSED CAPTION — bold white text with subtle drop shadow, floating above the scene in post-production style. NOT painted on surfaces. NOT integrated into environment.","placement":"lower third, horizontally centered","constraints":{{"no_surface_integration":true,"no_environment_painting":true,"floating_caption_style":true}}}},"logo":{{"reference_image":"image_4","placement":"top right corner","style":"clean sharp no distortion","protection":{{"do_not_redesign":true,"keep_exact_colors":true}}}}}}"""
 
 
 # ── Main Node ─────────────────────────────────────────────────────────────────
@@ -170,6 +167,7 @@ class OctopoztAdSystem:
                 "copy_text":      ("STRING", {"forceInput": True}),
                 "objective":      ("STRING", {"forceInput": True}),
                 "creative_brief": ("STRING", {"forceInput": True}),
+                "brand_context":  ("STRING", {"forceInput": True}),
                 "gemini_api_key": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
@@ -187,7 +185,7 @@ class OctopoztAdSystem:
         }
 
     def generate(self, talent_image, product_image, brand_logo, copy_text,
-                 objective, creative_brief, gemini_api_key,
+                 objective, creative_brief, brand_context, gemini_api_key,
                  tone="Energético", model="gemini-2.5-flash", num_variations=6,
                  brand_ref_1=None, brand_ref_2=None, brand_ref_3=None,
                  brand_ref_4=None, brand_ref_5=None, typography_ref=None):
@@ -249,7 +247,7 @@ class OctopoztAdSystem:
         try:
             final_user_prompt = build_final_prompt(
                 asset_desc, brand_style, copy_text, objective, tone, num_variations,
-                creative_brief=creative_brief
+                creative_brief=creative_brief, brand_context=brand_context
             )
             nano_prompt = gemini_call(
                 api_key, model,
