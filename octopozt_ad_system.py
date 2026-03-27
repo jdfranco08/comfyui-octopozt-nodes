@@ -74,8 +74,9 @@ CRITICAL RULES — NEVER VIOLATE:
 1. IDENTITY LOCK: The talent in the reference image is LOCKED. Describe them with 100% fidelity at the START of every prompt. Include every distinctive physical feature explicitly.
 2. PRODUCT LOCK: The product must be reproduced exactly — same shape, same label, same colors, zero modifications.
 3. TEXT LOCK: Ad copy text must appear EXACTLY as provided — no changes, no omissions.
-4. Write in dense, natural photographic language. NO JSON. NO bullet points. NO numbered lists.
-5. Every prompt MUST start with the identity opener and end with the logo/text rules."""
+4. STYLE LOCK: Extract concrete photographic specs from the brand style guide (camera angle, lens, lighting, composition) and mandate them explicitly in EVERY prompt. If the brand uses low-angle shots — every variation must be low-angle. If it uses golden hour — use golden hour. Never default to generic eye-level flat shots.
+5. Write in dense, natural photographic language. NO JSON. NO bullet points. NO numbered lists.
+6. Every prompt MUST start with the identity opener, include explicit camera/lighting specs from brand style, and end with the logo/text rules."""
 
 PROMPT_ASSETS = """Analyze the provided images and describe each asset with EXTREME precision.
 
@@ -103,7 +104,9 @@ def build_final_prompt(asset_desc: str, brand_style: str, copy_text: str,
                        objective: str, tone: str, num_variations: int,
                        creative_brief: str = "") -> str:
     brief_section = f"\n- Creative direction: {creative_brief}" if creative_brief.strip() else ""
-    return f"""You have received:
+    return f"""CRITICAL INSTRUCTION: Before generating any prompt, extract from the BRAND VISUAL STYLE GUIDE the specific camera angles, lighting types, and composition patterns used. Then MANDATE those exact specs in every single variation. Do not default to generic flat eye-level shots — replicate the brand's actual photographic language.
+
+You have received:
 
 === ASSET DESCRIPTIONS ===
 {asset_desc}
@@ -125,9 +128,15 @@ Start with: "The EXACT same [brief physical description of talent from ASSET DES
 Then: cinematic scene description (location, lighting, camera angle, mood, what talent is doing with product)
 End with: "Ad copy text '{copy_text}' integrated naturally into the scene — no background box, no banner, no graphic overlay. Brand logo in top right corner, clean and unmodified. Product is the EXACT [product name from description] — do not modify shape, label, or branding."
 
-Use these {num_variations} distinct scenes (adapt to brand style):
+Use these {num_variations} distinct scenes. For EACH one, explicitly state:
+- Camera angle extracted from brand style guide (e.g. "low-angle worm's-eye view looking up")
+- Exact lighting (e.g. "direct harsh sunlight from 45 degrees creating defined shadows")
+- Lens and depth of field (e.g. "85mm f/1.4, shallow DOF, background compressed and softly blurred")
+- Shot composition (e.g. "subject fills lower two-thirds, expansive blue sky as negative space")
+
+Scenes:
 1. Urban rooftop, golden hour warm sunlight
-2. Beach boardwalk, sunset tones  
+2. Beach boardwalk, sunset tones
 3. City alley at night, colorful neon lighting
 4. Mountain trail overlook, bright midday expansive sky
 5. Modern gym interior, natural window light
