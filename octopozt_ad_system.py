@@ -110,19 +110,26 @@ def build_final_prompt(asset_desc: str, brand_style: str,
 
     return f"""You are generating a production brief JSON for NanaBanana2 image generation (Gemini).
 
-STEP 1 — Extract from the BRAND VISUAL STYLE GUIDE these EXACT specs. You will mandate them in EVERY variation — do not default or invent:
-- Dominant camera angle (copy verbatim from guide, e.g. "low-angle looking significantly upward")
-- Lighting type (copy verbatim, e.g. "bright direct natural sunlight, high-key, strong highlights")
-- Lens and depth of field (copy verbatim, e.g. "85mm f/1.4, shallow depth, softly blurred background")
-- Color palette (copy verbatim primary + mood colors)
-- Composition pattern (copy verbatim, e.g. "asymmetrical balance, clear sky as negative space")
+STEP 1 — Extract from the BRAND VISUAL STYLE GUIDE these EXACT specs and store them. You MUST use them verbatim in every variation:
+- CAMERA_ANGLE: (e.g. "low-angle looking significantly upward")
+- LIGHTING: (e.g. "bright direct natural sunlight, high-key, strong highlights, minimal deep shadows")
+- LENS: (e.g. "85mm f/1.4, shallow depth of field, softly blurred background")
+- COLOR_PALETTE: (e.g. "vibrant sky blue, saturated yellow, deep red accent, warm coral")
+- COMPOSITION: (e.g. "asymmetrical balance, subject in lower third, clear blue sky as negative space")
+- BACKGROUND: (e.g. "expansive clear blue sky, minimal environmental detail")
 
-STEP 2 — Generate {num_variations} production brief JSONs, one per scene variation. Each must feel like a DIFFERENT scene while using the SAME brand photographic style extracted above.
+STEP 2 — Generate {num_variations} production brief JSONs, one per scene variation. Each must feel like a DIFFERENT scene while using the SAME brand photographic DNA extracted above.
+
+⚠️ CRITICAL RULE FOR scene_description:
+The scene_description field is the PRIMARY instruction to the image model. It MUST begin with the mandatory brand photography specs in this order:
+"[CAMERA_ANGLE] shot. [LIGHTING]. [LENS]. [COLOR_PALETTE] color palette. [then describe the scene, talent action, product placement]"
+
+Example: "Low-angle shot looking significantly upward. Bright direct natural sunlight, high-key. 85mm f/1.4, shallow depth of field. Vibrant sky blue and saturated yellow color palette. [talent] stands confidently on [location], holding [product] extended toward camera, [background]."
 
 ABSOLUTE RULES FOR ALL VARIATIONS:
-- talent: IDENTITY LOCK — reproduce EXACT person from image_1 with 100% fidelity. Use the TALENT description from the asset analysis. Do NOT add, invent, or assume any physical feature not visible in image_1. NEVER generate a different person.
+- scene_description: ALWAYS start with the brand photography specs as shown above. NEVER start with the scene narrative.
+- talent: IDENTITY LOCK — reproduce EXACT person from image_1 with 100% fidelity. Use ONLY the TALENT description from ASSET DESCRIPTIONS. Do NOT add, invent, or assume any physical feature not described there. NEVER generate a different person.
 - product: EXACT product from image_2. preserve_product_shape=true. do_not_modify_branding=true.
-- brand style: FORCE the camera angle, lighting, lens, color palette, and composition extracted in STEP 1 — do NOT substitute with generic defaults.
 - NO text in the scene. Completely clean image — no copy, no headlines, no words. Text added in post-production.
 - logo: EXACT logo from image_4. top right corner. do_not_redesign=true.
 
@@ -142,7 +149,7 @@ Output exactly {num_variations} JSON objects separated by *
 No markdown. No explanations. Start directly with {{
 
 FORMAT per variation (use EXACTLY this structure — no extra fields):
-{{"scene_description":"...","composition":{{"camera":"[EXACT angle from brand style guide]","lens":"[EXACT lens/DOF from brand style guide]","focus":"subject and product sharp","lighting":"[EXACT lighting from brand style guide]","depth":"[from brand style guide]"}},"style":{{"render":"ultra-realistic commercial photography","mood":"[from brand style guide]","color_palette":"[EXACT colors from brand style guide]"}},"talent":{{"reference_image":"image_1","instruction":"ABSOLUTE IDENTITY LOCK: Reproduce EXACT person from image_1. Use only features described in ASSET DESCRIPTIONS. Do NOT add features not seen in image_1.","action":"...","expression":"..."}},"product":{{"reference_image":"image_2","placement":"...","enhancement":"condensation, glow, etc","rules":{{"preserve_product_shape":true,"do_not_modify_branding":true}}}},"logo":{{"reference_image":"image_4","placement":"top right corner","style":"clean sharp no distortion","protection":{{"do_not_redesign":true,"keep_exact_colors":true}}}}}}
+{{"scene_description":"[CAMERA_ANGLE] shot. [LIGHTING]. [LENS]. [COLOR_PALETTE]. [scene + talent + product description]","composition":{{"camera":"[EXACT CAMERA_ANGLE from brand guide]","lens":"[EXACT LENS from brand guide]","focus":"subject and product sharp","lighting":"[EXACT LIGHTING from brand guide]","depth":"shallow to medium"}},"style":{{"render":"ultra-realistic commercial photography","mood":"[from brand guide]","color_palette":"[EXACT COLOR_PALETTE from brand guide]"}},"talent":{{"reference_image":"image_1","instruction":"ABSOLUTE IDENTITY LOCK: Reproduce EXACT person from image_1. Use ONLY features listed in ASSET DESCRIPTIONS. Do NOT add or invent features.","action":"...","expression":"..."}},"product":{{"reference_image":"image_2","placement":"...","enhancement":"condensation, glow, etc","rules":{{"preserve_product_shape":true,"do_not_modify_branding":true}}}},"logo":{{"reference_image":"image_4","placement":"top right corner","style":"clean sharp no distortion","protection":{{"do_not_redesign":true,"keep_exact_colors":true}}}}}}
 
 CRITICAL: Do NOT include a "text" field in the JSON. No text fields whatsoever. The image must be 100% clean — zero words, zero captions, zero typography in the scene."""
 
