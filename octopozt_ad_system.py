@@ -68,39 +68,43 @@ Describe brand visual style with extreme precision for AI image generation repli
 Focus ONLY on photographic technique, lighting, composition, and aesthetics.
 Never mention demographics, diversity, or casting."""
 
-SYSTEM_PROMPT_GENERATOR = """You are a world-class advertising photographer writing briefs for NanaBanana2 (Gemini image generation).
+SYSTEM_PROMPT_GENERATOR = """You generate short image prompts for NanaBanana2.
 
-CRITICAL RULES — NEVER VIOLATE:
-1. IDENTITY LOCK: The talent in the reference image is LOCKED. Describe them with 100% fidelity at the START of every prompt. Include every distinctive physical feature explicitly.
-2. PRODUCT LOCK: The product must be reproduced exactly — same shape, same label, same colors, zero modifications.
-3. STYLE LOCK: Extract concrete photographic specs from the brand style guide (camera angle, lens, lighting, composition) and mandate them explicitly in EVERY prompt. If the brand uses low-angle shots — every variation must be low-angle. If it uses golden hour — use golden hour. Never default to generic eye-level flat shots.
-4. Write in dense, natural photographic language. NO JSON. NO bullet points. NO numbered lists.
-5. Every prompt MUST start with the identity opener and include explicit camera/lighting specs from brand style.
+RULES:
+- Each prompt: 2-3 sentences maximum. Short and precise.
+- NEVER describe the person in text. They come from image_1 (reference image).
+- NEVER describe the product in text. It comes from image_2 (reference image).
+- Apply the brand photographic style extracted from the brand guide.
+- NO text, NO captions, NO typography in the image — clean scene only.
+- Each variation: different location and scene. Same photographic style.
 
-CLEAN IMAGE RULE — ABSOLUTE:
-Generate a completely clean photographic image with NO text, NO typography, NO words, NO headlines anywhere in the scene. The image is pure photography. Text and copy will be added as a separate graphic layer in post-production. Any text appearing in the generated image is a critical failure."""
+OUTPUT: {num_variations} prompts separated by *. No JSON. No numbering."""
 
-PROMPT_ASSETS = """Analyze the provided images and describe each asset with EXTREME precision.
 
-Image 1 = TALENT. Start with "TALENT:". Describe: exact age range, ethnicity, skin tone (use specific descriptors like "warm medium olive"), hair (color, texture, length, style — flag ANY unique features like white/silver streaks with exact location), eyes (color, shape), facial structure, expression, clothing (every item, color, fabric), body language, any distinctive features (moles, piercings, tattoos, accessories).
+def build_final_prompt(asset_desc: str, brand_style: str,
+                       objective: str, tone: str, num_variations: int,
+                       creative_brief: str = "", brand_context: str = "") -> str:
+    brief_section = f"Creative direction: {creative_brief}. " if creative_brief.strip() else ""
+    brand_ctx_section = f"Brand context: {brand_context}. " if brand_context.strip() else ""
 
-Image 2 = PRODUCT. Start with "PRODUCT:". Describe: exact shape and proportions, all colors (primary and secondary), complete label text visible, typography style, material and finish.
+    return f"""Generate {num_variations} image prompts. Each prompt: 2-3 sentences max.
 
-Image 3 = BRAND LOGO. Start with "LOGO:". Describe: exact colors, typography (font style, weight, casing), any icons or symbols, gradients, overall shape.
+Brand photographic style:
+{brand_style}
 
-Write as if briefing a photographer who has NEVER seen these assets and must reproduce them with 100% fidelity."""
+Campaign: {objective}. Tone: {tone}. {brief_section}{brand_ctx_section}
 
-PROMPT_BRAND = """Analyze the provided brand reference images and extract a PRECISE visual style guide.
+Rules for every prompt:
+- Person = image_1. Do not describe them in words.
+- Product = image_2. Do not describe it in words.
+- Logo = image_4. Top right corner.
+- No text in the image.
+- Different scene per prompt. Same brand photographic style.
 
-Include:
-1. COLOR PALETTE: Primary and accent colors, mood, contrast style
-2. PHOTOGRAPHY STYLE: Camera angles, lighting type, depth of field, grain/texture
-3. COMPOSITION: Layout patterns, product placement, negative space
-4. PHOTOGRAPHIC APPROACH: Camera distance, expression style, body language, pose style — describe HOW subjects are photographed only, never WHO they are
-5. TYPOGRAPHY MOOD: Bold/subtle, integrated/overlay style
-6. OVERALL AESTHETIC: One dense paragraph describing the brand's visual DNA for AI replication
+Prompt format: [brand camera angle + lighting]. Person from image_1 [action] in [location], holding product from image_2. [background]. Clean image, no text.
 
-Output ONLY the structured guide. No preamble."""
+Output {num_variations} prompts separated by *. Start directly with the first prompt."""
+
 
 def build_final_prompt(asset_desc: str, brand_style: str,
                        objective: str, tone: str, num_variations: int,
