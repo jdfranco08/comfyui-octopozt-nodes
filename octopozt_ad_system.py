@@ -103,7 +103,7 @@ Include:
 
 Output ONLY the structured guide. No preamble."""
 
-def build_final_prompt(asset_desc: str, brand_style: str, copy_text: str,
+def build_final_prompt(asset_desc: str, brand_style: str,
                        objective: str, tone: str, num_variations: int,
                        creative_brief: str = "", brand_context: str = "") -> str:
     brief_section = f"\n- Creative direction: {creative_brief}" if creative_brief.strip() else ""
@@ -122,7 +122,7 @@ STEP 2 — Generate {num_variations} production brief JSONs, one per scene varia
 ABSOLUTE RULES FOR ALL VARIATIONS:
 - talent: IDENTITY LOCK — same exact person from image_1. 100% fidelity. Same face, hair (note white streak if present), skin tone. NEVER generate a different person.
 - product: use EXACT product from image_2. preserve_product_shape=true. do_not_modify_branding=true.
-- text_overlay: The copy text must appear as a CLEAN CAPTION SUPERIMPOSED over the image — like post-production subtitles or a floating text overlay. NOT painted on walls, NOT carved into surfaces, NOT integrated into the scene environment. It floats cleanly above everything, bold and legible, positioned in the lower third or upper area with clear contrast against the background.
+- NO text in the scene. The image must be completely clean — no copy, no headlines, no words anywhere. Text will be added as a separate graphic layer in post-production.
 - logo: use EXACT logo from image_4. top right corner. do_not_redesign=true.
 - Apply brand photographic style extracted in STEP 1 to EVERY variation.
 
@@ -133,7 +133,6 @@ ABSOLUTE RULES FOR ALL VARIATIONS:
 {brand_style}
 
 === CAMPAIGN BRIEF ===
-- Ad copy text (EXACT, never change): "{copy_text}"
 - Campaign objective: {objective}
 - Visual tone: {tone}{brief_section}{brand_ctx_section}
 
@@ -143,7 +142,7 @@ Output exactly {num_variations} JSON objects separated by *
 No markdown. No explanations. Start directly with {{
 
 FORMAT per variation:
-{{"scene_description":"...","composition":{{"camera":"LOW-ANGLE or exact angle from brand style","lens":"85mm f/1.4 or brand lens","focus":"...","lighting":"exact brand lighting type","depth":"shallow/medium"}},"style":{{"render":"ultra-realistic commercial photography, Sony A7R V","mood":"...","color_palette":"consistent with brand style guide"}},"talent":{{"reference_image":"image_1","instruction":"ABSOLUTE IDENTITY LOCK: Reproduce EXACT person from image_1. 100% fidelity. Same face, hair including white streak, skin tone. Do NOT generate a different person.","action":"...","expression":"..."}},"product":{{"reference_image":"image_2","placement":"...","enhancement":"condensation, glow, etc","rules":{{"preserve_product_shape":true,"do_not_modify_branding":true}}}},"text_overlay":{{"content":"{copy_text}","style":"CLEAN SUPERIMPOSED CAPTION — bold white text with subtle drop shadow, floating above the scene in post-production style. NOT painted on surfaces. NOT integrated into environment.","placement":"lower third, horizontally centered","constraints":{{"no_surface_integration":true,"no_environment_painting":true,"floating_caption_style":true}}}},"logo":{{"reference_image":"image_4","placement":"top right corner","style":"clean sharp no distortion","protection":{{"do_not_redesign":true,"keep_exact_colors":true}}}}}}"""
+{{"scene_description":"...","composition":{{"camera":"LOW-ANGLE or exact angle from brand style","lens":"85mm f/1.4 or brand lens","focus":"...","lighting":"exact brand lighting type","depth":"shallow/medium"}},"style":{{"render":"ultra-realistic commercial photography, Sony A7R V","mood":"...","color_palette":"consistent with brand style guide"}},"talent":{{"reference_image":"image_1","instruction":"ABSOLUTE IDENTITY LOCK: Reproduce EXACT person from image_1. 100% fidelity. Same face, hair including white streak, skin tone. Do NOT generate a different person.","action":"...","expression":"..."}},"product":{{"reference_image":"image_2","placement":"...","enhancement":"condensation, glow, etc","rules":{{"preserve_product_shape":true,"do_not_modify_branding":true}}}},"text":"NO TEXT IN IMAGE — clean scene only, text added in post","logo":{{"reference_image":"image_4","placement":"top right corner","style":"clean sharp no distortion","protection":{{"do_not_redesign":true,"keep_exact_colors":true}}}}}}"""
 
 
 # ── Main Node ─────────────────────────────────────────────────────────────────
@@ -167,7 +166,6 @@ class OctopoztAdSystem:
                 "talent_image":   ("IMAGE",),
                 "product_image":  ("IMAGE",),
                 "brand_logo":     ("IMAGE",),
-                "copy_text":      ("STRING", {"forceInput": True}),
                 "objective":      ("STRING", {"forceInput": True}),
                 "creative_brief": ("STRING", {"forceInput": True}),
                 "brand_context":  ("STRING", {"forceInput": True}),
@@ -187,7 +185,7 @@ class OctopoztAdSystem:
             }
         }
 
-    def generate(self, talent_image, product_image, brand_logo, copy_text,
+    def generate(self, talent_image, product_image, brand_logo,
                  objective, creative_brief, brand_context, gemini_api_key,
                  tone="Energético", model="gemini-2.5-flash", num_variations=6,
                  brand_ref_1=None, brand_ref_2=None, brand_ref_3=None,
@@ -249,7 +247,7 @@ class OctopoztAdSystem:
         debug_lines.append(f"=== CALL 3: Prompt Generation ({num_variations} variations) ===")
         try:
             final_user_prompt = build_final_prompt(
-                asset_desc, brand_style, copy_text, objective, tone, num_variations,
+                asset_desc, brand_style, objective, tone, num_variations,
                 creative_brief=creative_brief, brand_context=brand_context
             )
             nano_prompt = gemini_call(
@@ -274,8 +272,7 @@ class OctopoztAdSystem:
                 f"The EXACT same person from the reference image. IDENTITY LOCK: same face, hair, skin tone — zero changes. "
                 f"Standing in a clean modern lifestyle setting, holding the product naturally. "
                 f"Bright natural lighting, medium shot, shallow depth of field. "
-                f"IMPORTANT: Ad copy text '{copy_text}' must appear as a CLEAN SUPERIMPOSED CAPTION floating above the scene — "
-                f"NOT painted on surfaces, NOT integrated into the environment. Post-production text overlay style only. "
+                f"NO TEXT anywhere in the image — completely clean scene. Text will be added in post-production. "
                 f"Brand logo top right corner, clean and unmodified."
             )
             while len(parts) < num_variations:
