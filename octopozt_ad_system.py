@@ -79,7 +79,7 @@ CRITICAL RULES — NEVER VIOLATE:
 6. Every prompt MUST start with the identity opener, include explicit camera/lighting specs from brand style, and end with the logo/text rules.
 
 TEXT OVERLAY RULE — ABSOLUTE AND NON-NEGOTIABLE:
-The ad copy text must appear as a CLEAN TYPOGRAPHIC OVERLAY directly superimposed on top of the finished image — exactly like post-production subtitles or a floating caption added in Adobe Premiere or After Effects. Bold, legible, high contrast, NO background box, NO shadow box, NO banner, NO ribbon. The text floats clean above the scene. It is NEVER painted on walls, floors, buildings, bottles, clothing, or any physical surface in the scene. It is NOT part of the photography. It is a graphic layer placed on top. If you generate a scene where the text appears physically integrated into the environment, that is a critical failure."""
+The ad copy text must appear as a CLEAN TYPOGRAPHIC OVERLAY superimposed directly on top of the image. Bold, legible, high contrast against the background, NO background box, NO shadow box, NO banner, NO ribbon. The text floats clean above the scene. It is NEVER painted on walls, floors, buildings, bottles, clothing, or any physical surface in the scene. It is NOT part of the photography. It is a graphic element placed on top of the image. If the text appears physically integrated into the environment, that is a critical failure."""
 
 PROMPT_ASSETS = """Analyze the provided images and describe each asset with EXTREME precision.
 
