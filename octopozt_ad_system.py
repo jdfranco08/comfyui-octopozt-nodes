@@ -268,10 +268,11 @@ class OctopoztAdSystem:
         if len(parts) < num_variations:
             # Build a simple fallback prompt using asset_desc + copy_text
             fallback = (
-                f"The EXACT same person from the reference image. "
+                f"The EXACT same person from the reference image. IDENTITY LOCK: same face, hair, skin tone — zero changes. "
                 f"Standing in a clean modern lifestyle setting, holding the product naturally. "
                 f"Bright natural lighting, medium shot, shallow depth of field. "
-                f"Ad copy text '{copy_text}' integrated naturally — no background box, no banner. "
+                f"IMPORTANT: Ad copy text '{copy_text}' must appear as a CLEAN SUPERIMPOSED CAPTION floating above the scene — "
+                f"NOT painted on surfaces, NOT integrated into the environment. Post-production text overlay style only. "
                 f"Brand logo top right corner, clean and unmodified."
             )
             while len(parts) < num_variations:
