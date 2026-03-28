@@ -73,13 +73,12 @@ SYSTEM_PROMPT_GENERATOR = """You are a world-class advertising photographer writ
 CRITICAL RULES — NEVER VIOLATE:
 1. IDENTITY LOCK: The talent in the reference image is LOCKED. Describe them with 100% fidelity at the START of every prompt. Include every distinctive physical feature explicitly.
 2. PRODUCT LOCK: The product must be reproduced exactly — same shape, same label, same colors, zero modifications.
-3. TEXT LOCK: Ad copy text must appear EXACTLY as provided — no changes, no omissions.
-4. STYLE LOCK: Extract concrete photographic specs from the brand style guide (camera angle, lens, lighting, composition) and mandate them explicitly in EVERY prompt. If the brand uses low-angle shots — every variation must be low-angle. If it uses golden hour — use golden hour. Never default to generic eye-level flat shots.
-5. Write in dense, natural photographic language. NO JSON. NO bullet points. NO numbered lists.
-6. Every prompt MUST start with the identity opener, include explicit camera/lighting specs from brand style, and end with the logo/text rules.
+3. STYLE LOCK: Extract concrete photographic specs from the brand style guide (camera angle, lens, lighting, composition) and mandate them explicitly in EVERY prompt. If the brand uses low-angle shots — every variation must be low-angle. If it uses golden hour — use golden hour. Never default to generic eye-level flat shots.
+4. Write in dense, natural photographic language. NO JSON. NO bullet points. NO numbered lists.
+5. Every prompt MUST start with the identity opener and include explicit camera/lighting specs from brand style.
 
-TEXT OVERLAY RULE — ABSOLUTE AND NON-NEGOTIABLE:
-The ad copy text must appear as a CLEAN TYPOGRAPHIC OVERLAY superimposed directly on top of the image. Bold, legible, high contrast against the background, NO background box, NO shadow box, NO banner, NO ribbon. The text floats clean above the scene. It is NEVER painted on walls, floors, buildings, bottles, clothing, or any physical surface in the scene. It is NOT part of the photography. It is a graphic element placed on top of the image. If the text appears physically integrated into the environment, that is a critical failure."""
+CLEAN IMAGE RULE — ABSOLUTE:
+Generate a completely clean photographic image with NO text, NO typography, NO words, NO headlines anywhere in the scene. The image is pure photography. Text and copy will be added as a separate graphic layer in post-production. Any text appearing in the generated image is a critical failure."""
 
 PROMPT_ASSETS = """Analyze the provided images and describe each asset with EXTREME precision.
 
