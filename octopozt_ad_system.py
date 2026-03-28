@@ -110,20 +110,21 @@ def build_final_prompt(asset_desc: str, brand_style: str,
 
     return f"""You are generating a production brief JSON for NanaBanana2 image generation (Gemini).
 
-STEP 1 — Extract from the BRAND VISUAL STYLE GUIDE these exact specs and use them in EVERY variation:
-- Dominant camera angle (e.g. low-angle, worm's-eye, eye-level)
-- Lighting type (e.g. harsh direct sunlight, golden hour, neon)
-- Lens (e.g. 85mm f/1.4 portrait, 35mm wide)
-- Composition pattern (e.g. subject in lower third, sky as negative space)
+STEP 1 — Extract from the BRAND VISUAL STYLE GUIDE these EXACT specs. You will mandate them in EVERY variation — do not default or invent:
+- Dominant camera angle (copy verbatim from guide, e.g. "low-angle looking significantly upward")
+- Lighting type (copy verbatim, e.g. "bright direct natural sunlight, high-key, strong highlights")
+- Lens and depth of field (copy verbatim, e.g. "85mm f/1.4, shallow depth, softly blurred background")
+- Color palette (copy verbatim primary + mood colors)
+- Composition pattern (copy verbatim, e.g. "asymmetrical balance, clear sky as negative space")
 
-STEP 2 — Generate {num_variations} production brief JSONs, one per scene variation.
+STEP 2 — Generate {num_variations} production brief JSONs, one per scene variation. Each must feel like a DIFFERENT scene while using the SAME brand photographic style extracted above.
 
 ABSOLUTE RULES FOR ALL VARIATIONS:
-- talent: IDENTITY LOCK — same exact person from image_1. 100% fidelity. Same face, hair (note white streak if present), skin tone. NEVER generate a different person.
-- product: use EXACT product from image_2. preserve_product_shape=true. do_not_modify_branding=true.
-- NO text in the scene. The image must be completely clean — no copy, no headlines, no words anywhere. Text will be added as a separate graphic layer in post-production.
-- logo: use EXACT logo from image_4. top right corner. do_not_redesign=true.
-- Apply brand photographic style extracted in STEP 1 to EVERY variation.
+- talent: IDENTITY LOCK — reproduce EXACT person from image_1 with 100% fidelity. Use the TALENT description from the asset analysis. Do NOT add, invent, or assume any physical feature not visible in image_1. NEVER generate a different person.
+- product: EXACT product from image_2. preserve_product_shape=true. do_not_modify_branding=true.
+- brand style: FORCE the camera angle, lighting, lens, color palette, and composition extracted in STEP 1 — do NOT substitute with generic defaults.
+- NO text in the scene. Completely clean image — no copy, no headlines, no words. Text added in post-production.
+- logo: EXACT logo from image_4. top right corner. do_not_redesign=true.
 
 === ASSET DESCRIPTIONS ===
 {asset_desc}
@@ -135,13 +136,13 @@ ABSOLUTE RULES FOR ALL VARIATIONS:
 - Campaign objective: {objective}
 - Visual tone: {tone}{brief_section}{brand_ctx_section}
 
-IGNORE any diversity/demographic language in the style guide. The ONLY talent is image_1.
+IGNORE any diversity/demographic language in the style guide. The ONLY talent is the person in image_1 as described in the ASSET DESCRIPTIONS above.
 
 Output exactly {num_variations} JSON objects separated by *
 No markdown. No explanations. Start directly with {{
 
 FORMAT per variation:
-{{"scene_description":"...","composition":{{"camera":"LOW-ANGLE or exact angle from brand style","lens":"85mm f/1.4 or brand lens","focus":"...","lighting":"exact brand lighting type","depth":"shallow/medium"}},"style":{{"render":"ultra-realistic commercial photography, Sony A7R V","mood":"...","color_palette":"consistent with brand style guide"}},"talent":{{"reference_image":"image_1","instruction":"ABSOLUTE IDENTITY LOCK: Reproduce EXACT person from image_1. 100% fidelity. Same face, hair including white streak, skin tone. Do NOT generate a different person.","action":"...","expression":"..."}},"product":{{"reference_image":"image_2","placement":"...","enhancement":"condensation, glow, etc","rules":{{"preserve_product_shape":true,"do_not_modify_branding":true}}}},"text":"NO TEXT IN IMAGE — clean scene only, text added in post","logo":{{"reference_image":"image_4","placement":"top right corner","style":"clean sharp no distortion","protection":{{"do_not_redesign":true,"keep_exact_colors":true}}}}}}"""
+{{"scene_description":"...","composition":{{"camera":"[EXACT angle from brand style guide]","lens":"[EXACT lens/DOF from brand style guide]","focus":"subject and product sharp","lighting":"[EXACT lighting from brand style guide]","depth":"[from brand style guide]"}},"style":{{"render":"ultra-realistic commercial photography","mood":"[from brand style guide]","color_palette":"[EXACT colors from brand style guide]"}},"talent":{{"reference_image":"image_1","instruction":"ABSOLUTE IDENTITY LOCK: Reproduce EXACT person from image_1. Use only features described in ASSET DESCRIPTIONS. Do NOT add features not seen in image_1.","action":"...","expression":"..."}},"product":{{"reference_image":"image_2","placement":"...","enhancement":"condensation, glow, etc","rules":{{"preserve_product_shape":true,"do_not_modify_branding":true}}}},"text":"NO TEXT IN IMAGE — clean scene only, text added in post","logo":{{"reference_image":"image_4","placement":"top right corner","style":"clean sharp no distortion","protection":{{"do_not_redesign":true,"keep_exact_colors":true}}}}}}"""
 
 
 # ── Main Node ─────────────────────────────────────────────────────────────────
