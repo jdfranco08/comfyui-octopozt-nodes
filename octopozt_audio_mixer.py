@@ -23,23 +23,36 @@ class OctopoztAudioMixer:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "voice":          ("AUDIO",),
-                "music":          ("AUDIO",),
-                "voice_volume":   ("FLOAT", {"default": 1.0,  "min": 0.0, "max": 2.0, "step": 0.05}),
-                "music_volume":   ("FLOAT", {"default": 0.4,  "min": 0.0, "max": 2.0, "step": 0.05}),
-                "duck_to":        ("FLOAT", {"default": 0.08, "min": 0.0, "max": 1.0, "step": 0.01,
-                                             "tooltip": "Volumen de música cuando hay voz (0.08 = 8%)"}),
-                "duck_threshold": ("FLOAT", {"default": 0.02, "min": 0.001, "max": 0.5, "step": 0.001,
-                                             "tooltip": "Sensibilidad de detección de voz"}),
-                "attack_ms":      ("INT",   {"default": 20,   "min": 1,   "max": 200,
-                                             "tooltip": "ms para bajar la música cuando entra la voz"}),
-                "release_ms":     ("INT",   {"default": 150,  "min": 10,  "max": 1000,
-                                             "tooltip": "ms para subir la música cuando termina la voz"}),
+                "voice":           ("AUDIO",),
+                "music":           ("AUDIO",),
+                "voice_db":        ("FLOAT", {"default":   0.0, "min": -40.0, "max": 12.0, "step": 0.5,
+                                              "display": "slider",
+                                              "tooltip": "Volumen de la voz en dB (0 = original, -6 = mitad, +6 = doble)"}),
+                "music_db":        ("FLOAT", {"default": -10.0, "min": -40.0, "max": 12.0, "step": 0.5,
+                                              "display": "slider",
+                                              "tooltip": "Volumen base de la música en dB"}),
+                "duck_db":         ("FLOAT", {"default": -20.0, "min": -60.0, "max":  0.0, "step": 0.5,
+                                              "display": "slider",
+                                              "tooltip": "A qué dB baja la música cuando hay voz (-20 dB = muy sutil)"}),
+                "duck_threshold":  ("FLOAT", {"default":  0.02, "min":  0.001, "max": 0.5, "step": 0.001,
+                                              "tooltip": "Sensibilidad del detector de voz"}),
+                "attack_ms":       ("INT",   {"default":    20, "min":  1,    "max": 200,
+                                              "tooltip": "ms para bajar la música cuando entra la voz"}),
+                "release_ms":      ("INT",   {"default":   150, "min": 10,    "max": 1000,
+                                              "tooltip": "ms para subir la música cuando termina la voz"}),
             }
         }
 
-    def mix(self, voice, music, voice_volume, music_volume,
-            duck_to, duck_threshold, attack_ms, release_ms):
+    @staticmethod
+    def db_to_linear(db):
+        """Convierte dB a factor lineal. 0 dB = 1.0, -6 dB ≈ 0.5, +6 dB ≈ 2.0"""
+        return 10 ** (db / 20.0)
+
+    def mix(self, voice, music, voice_db, music_db, duck_db,
+            duck_threshold, attack_ms, release_ms):
+        voice_volume = self.db_to_linear(voice_db)
+        music_volume = self.db_to_linear(music_db)
+        duck_to      = self.db_to_linear(duck_db)
 
         # ── Extraer waveforms ──────────────────────────────────────────────────
         v_waveform = voice["waveform"]   # (batch, channels, samples)
