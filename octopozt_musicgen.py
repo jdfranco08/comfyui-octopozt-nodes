@@ -46,6 +46,9 @@ class OctopoztMusicGen:
         model_id = f"facebook/musicgen-{model}"
 
         # ── Device ────────────────────────────────────────────────────────────
+        # MPS tiene limitación de 65536 canales en conv1d — usar CPU fallback
+        import os
+        os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
         if torch.backends.mps.is_available():
             device = "mps"
         elif torch.cuda.is_available():
