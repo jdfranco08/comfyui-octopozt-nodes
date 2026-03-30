@@ -60,9 +60,17 @@ class OctopoztElevenMusic:
 
         # ── Decodificar MP3 → tensor ───────────────────────────────────────────
         try:
-            import torchaudio
+            from pydub import AudioSegment
             audio_bytes = io.BytesIO(response.content)
-            waveform, sample_rate = torchaudio.load(audio_bytes, format="mp3")
+            seg = AudioSegment.from_mp3(audio_bytes)
+            sample_rate = seg.frame_rate
+            samples = np.array(seg.get_array_of_samples(), dtype=np.float32)
+            samples = samples / (2 ** (seg.sample_width * 8 - 1))  # normalizar a [-1, 1]
+            if seg.channels == 2:
+                samples = samples.reshape(-1, 2).T  # (2, samples)
+            else:
+                samples = samples.reshape(1, -1)    # (1, samples)
+            waveform = torch.from_numpy(samples).unsqueeze(0)  # (1, channels, samples)
         except Exception as e:
             raise RuntimeError(f"Error decodificando audio: {e}")
 
@@ -146,16 +154,19 @@ class OctopoztElevenTTS:
             raise RuntimeError(f"ElevenLabs error {response.status_code}: {response.text[:300]}")
 
         try:
-            import torchaudio
+            from pydub import AudioSegment
             audio_bytes = io.BytesIO(response.content)
-            waveform, sample_rate = torchaudio.load(audio_bytes, format="mp3")
+            seg = AudioSegment.from_mp3(audio_bytes)
+            sample_rate = seg.frame_rate
+            samples = np.array(seg.get_array_of_samples(), dtype=np.float32)
+            samples = samples / (2 ** (seg.sample_width * 8 - 1))
+            if seg.channels == 2:
+                samples = samples.reshape(-1, 2).T
+            else:
+                samples = samples.reshape(1, -1)
+            waveform = torch.from_numpy(samples).unsqueeze(0)
         except Exception as e:
             raise RuntimeError(f"Error decodificando audio: {e}")
-
-        if waveform.dim() == 1:
-            waveform = waveform.unsqueeze(0).unsqueeze(0)
-        elif waveform.dim() == 2:
-            waveform = waveform.unsqueeze(0)
 
         output_audio = {
             "waveform":    waveform,
