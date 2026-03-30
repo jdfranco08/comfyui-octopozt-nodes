@@ -61,16 +61,20 @@ class OctopoztSunoMusic:
         if not suno_cookie.strip():
             raise ValueError("Falta la cookie de Suno")
 
+        cookie_str = suno_cookie.strip()
+
         session = requests.Session()
         session.headers.update({
-            "Cookie":     f"__client={suno_cookie.strip()}",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "Cookie":     cookie_str,
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Origin":     "https://suno.com",
+            "Referer":    "https://suno.com/",
         })
 
         # ── 1. Obtener JWT token ───────────────────────────────────────────────
         jwt_resp = session.get("https://studio-api.suno.ai/api/auth/token/", timeout=15)
         if jwt_resp.status_code != 200:
-            raise RuntimeError(f"Error obteniendo token: {jwt_resp.status_code} — verifica la cookie")
+            raise RuntimeError(f"Error obteniendo token: {jwt_resp.status_code} — {jwt_resp.text[:200]}")
 
         jwt = jwt_resp.json().get("token")
         if not jwt:
