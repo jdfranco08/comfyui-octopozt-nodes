@@ -40,19 +40,39 @@ class OctopoztAutoMix:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "voice": ("AUDIO",),
-                "music": ("AUDIO",),
+                "voice":          ("AUDIO",),
+                "music":          ("AUDIO",),
+                "ducking":        ("BOOLEAN", {"default": True,
+                                               "label_on": "Ducking ON",
+                                               "label_off": "Ducking OFF",
+                                               "tooltip": "Baja la música cuando hay voz"}),
+                "voice_presence": (["sutil", "normal", "dominante"], {"default": "normal",
+                                               "tooltip": "Qué tanto domina la voz sobre la música"}),
+                "music_energy":   (["baja", "media", "alta"], {"default": "media",
+                                               "tooltip": "Qué tan fuerte se oye la música de fondo"}),
             }
         }
 
-    def automix(self, voice, music):
-        # ── Parámetros internos (no expuestos) ────────────────────────────────
-        VOICE_TARGET_DB   = -6.0   # nivel RMS objetivo para la voz
-        VOICE_ABOVE_MUSIC =  8.0   # dB que la voz debe superar a la música
-        DUCK_EXTRA_DB     =  8.0   # dB de ducking durante la voz
-        DUCK_THRESHOLD_RATIO = 0.3 # detecta voz cuando RMS > 30% del RMS máximo de voz
-        ATTACK_MS         = 30     # ms para bajar música al entrar voz
-        RELEASE_MS        = 200    # ms para subir música al salir voz
+    def automix(self, voice, music, ducking=True, voice_presence="normal", music_energy="media"):
+        # ── Tablas de presets ──────────────────────────────────────────────────
+        presence_map = {
+            "sutil":    {"above": 5.0,  "duck_extra": 5.0},
+            "normal":   {"above": 8.0,  "duck_extra": 8.0},
+            "dominante":{"above": 14.0, "duck_extra": 14.0},
+        }
+        energy_map = {
+            "baja":  -14.0,
+            "media":  -8.0,
+            "alta":   -4.0,
+        }
+
+        VOICE_TARGET_DB      = -6.0
+        VOICE_ABOVE_MUSIC    = presence_map[voice_presence]["above"]
+        DUCK_EXTRA_DB        = presence_map[voice_presence]["duck_extra"]
+        MUSIC_ENERGY_OFFSET  = energy_map[music_energy]   # ajuste extra sobre el cálculo automático
+        DUCK_THRESHOLD_RATIO = 0.3
+        ATTACK_MS            = 30
+        RELEASE_MS           = 200
 
         # ── Extraer waveforms ──────────────────────────────────────────────────
         v_waveform = voice["waveform"]
@@ -68,7 +88,7 @@ class OctopoztAutoMix:
         m_rms = rms_db(m_np)
 
         voice_db  = max(-20.0, min(12.0, VOICE_TARGET_DB - v_rms))
-        music_db  = max(-40.0, min(6.0,  (VOICE_TARGET_DB - VOICE_ABOVE_MUSIC) - m_rms))
+        music_db  = max(-40.0, min(6.0,  (VOICE_TARGET_DB - VOICE_ABOVE_MUSIC) - m_rms + MUSIC_ENERGY_OFFSET))
         duck_db   = max(-60.0, min(0.0,  music_db - DUCK_EXTRA_DB))
 
         # ── Resamplear música si necesario ─────────────────────────────────────
@@ -113,20 +133,21 @@ class OctopoztAutoMix:
             voice_active[start:end] = 1.0 if rms_values[i] > threshold else 0.0
 
         # ── Aplicar ducking suave (attack/release) ─────────────────────────────
-        attack_samples  = max(1, int(v_sr * ATTACK_MS  / 1000))
-        release_samples = max(1, int(v_sr * RELEASE_MS / 1000))
-        duck_to         = db_to_linear(duck_db)
-        duck_range      = 1.0 - duck_to
+        gain = np.ones(len(v_np), dtype=np.float32)
 
-        gain         = np.ones(len(v_np), dtype=np.float32)
-        current_gain = 1.0
+        if ducking:
+            attack_samples  = max(1, int(v_sr * ATTACK_MS  / 1000))
+            release_samples = max(1, int(v_sr * RELEASE_MS / 1000))
+            duck_to         = db_to_linear(duck_db)
+            duck_range      = 1.0 - duck_to
+            current_gain    = 1.0
 
-        for i in range(len(v_np)):
-            if voice_active[i] > 0.5:
-                current_gain = max(duck_to, current_gain - duck_range / attack_samples)
-            else:
-                current_gain = min(1.0,    current_gain + duck_range / release_samples)
-            gain[i] = current_gain
+            for i in range(len(v_np)):
+                if voice_active[i] > 0.5:
+                    current_gain = max(duck_to, current_gain - duck_range / attack_samples)
+                else:
+                    current_gain = min(1.0,    current_gain + duck_range / release_samples)
+                gain[i] = current_gain
 
         # ── Mezclar ────────────────────────────────────────────────────────────
         mixed = v_np + (m_np * gain)
@@ -147,11 +168,12 @@ class OctopoztAutoMix:
         # ── Reporte ────────────────────────────────────────────────────────────
         report = (
             f"=== OCTOPOZT AUTOMIX ===\n"
-            f"Voz:    RMS {v_rms:+.1f} dB → ajuste {voice_db:+.1f} dB\n"
-            f"Música: RMS {m_rms:+.1f} dB → ajuste {music_db:+.1f} dB\n"
-            f"Ducking durante voz: {duck_db:+.1f} dB\n"
-            f"Threshold voz: {threshold:.4f} (relativo)\n"
-            f"Balance final: voz {VOICE_ABOVE_MUSIC:.0f} dB sobre música ✅"
+            f"Voz:      RMS {v_rms:+.1f} dB → ajuste {voice_db:+.1f} dB\n"
+            f"Música:   RMS {m_rms:+.1f} dB → ajuste {music_db:+.1f} dB\n"
+            f"Presencia voz: {voice_presence} (+{VOICE_ABOVE_MUSIC:.0f} dB sobre música)\n"
+            f"Energía música: {music_energy}\n"
+            f"Ducking: {'ON — ' + str(duck_db) + ' dB' if ducking else 'OFF'}\n"
+            f"Threshold: {threshold:.4f} (relativo)"
         )
 
         return (output_audio, report)
