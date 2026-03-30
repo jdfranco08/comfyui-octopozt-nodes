@@ -42,7 +42,7 @@ class OctopoztAutoMix:
             "required": {
                 "voice":          ("AUDIO",),
                 "music":          ("AUDIO",),
-                "ducking":        ("BOOLEAN", {"default": True,
+                "ducking":        ("BOOLEAN", {"default": False,
                                                "label_on": "Ducking ON",
                                                "label_off": "Ducking OFF",
                                                "tooltip": "Baja la música cuando hay voz"}),
@@ -61,9 +61,9 @@ class OctopoztAutoMix:
             "dominante":{"above": 14.0, "duck_extra": 14.0},
         }
         energy_map = {
-            "baja":  -14.0,
-            "media":  -8.0,
-            "alta":   -4.0,
+            "baja":   -8.0,
+            "media":  -4.0,
+            "alta":    0.0,
         }
 
         VOICE_TARGET_DB      = -6.0
