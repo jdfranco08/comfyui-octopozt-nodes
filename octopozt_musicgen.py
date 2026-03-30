@@ -46,15 +46,12 @@ class OctopoztMusicGen:
         model_id = f"facebook/musicgen-{model}"
 
         # ── Device ────────────────────────────────────────────────────────────
-        # MPS tiene limitación de 65536 canales en conv1d — usar CPU fallback
-        import os
-        os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
-        if torch.backends.mps.is_available():
-            device = "mps"
-        elif torch.cuda.is_available():
+        # MusicGen tiene bug en MPS (conv1d > 65536 canales) — usar CPU en Mac
+        # En Linux/Windows con CUDA sí usa GPU
+        if torch.cuda.is_available():
             device = "cuda"
         else:
-            device = "cpu"
+            device = "cpu"  # CPU en Mac — funciona bien con Apple Silicon
 
         # ── Cargar pipeline (cacheado) ─────────────────────────────────────────
         if model_id not in OctopoztMusicGen._pipeline_cache:
