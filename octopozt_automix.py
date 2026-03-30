@@ -49,10 +49,10 @@ class OctopoztAutoMix:
         # ── Parámetros internos (no expuestos) ────────────────────────────────
         VOICE_TARGET_DB   = -6.0   # nivel RMS objetivo para la voz
         VOICE_ABOVE_MUSIC =  8.0   # dB que la voz debe superar a la música
-        DUCK_EXTRA_DB     = 10.0   # dB extra de ducking durante la voz
-        DUCK_THRESHOLD    =  0.02  # sensibilidad del detector de voz
-        ATTACK_MS         = 20     # ms para bajar música al entrar voz
-        RELEASE_MS        = 150    # ms para subir música al salir voz
+        DUCK_EXTRA_DB     =  8.0   # dB de ducking durante la voz
+        DUCK_THRESHOLD_RATIO = 0.3 # detecta voz cuando RMS > 30% del RMS máximo de voz
+        ATTACK_MS         = 30     # ms para bajar música al entrar voz
+        RELEASE_MS        = 200    # ms para subir música al salir voz
 
         # ── Extraer waveforms ──────────────────────────────────────────────────
         v_waveform = voice["waveform"]
@@ -91,17 +91,26 @@ class OctopoztAutoMix:
         v_np = v_np * db_to_linear(voice_db)
         m_np = m_np * db_to_linear(music_db)
 
-        # ── Detectar voz activa (RMS por ventanas de 10ms) ────────────────────
-        window_size  = max(1, int(v_sr * 0.01))
+        # ── Detectar voz activa (RMS relativo al nivel máximo de la voz) ──────
+        window_size  = max(1, int(v_sr * 0.02))  # ventanas de 20ms
         num_windows  = int(np.ceil(len(v_np) / window_size))
-        voice_active = np.zeros(len(v_np), dtype=np.float32)
+        rms_values   = np.zeros(num_windows, dtype=np.float32)
 
         for i in range(num_windows):
             start = i * window_size
             end   = min(start + window_size, len(v_np))
             chunk = v_np[start:end]
-            rms   = np.sqrt(np.mean(chunk ** 2)) if len(chunk) > 0 else 0.0
-            voice_active[start:end] = 1.0 if rms > DUCK_THRESHOLD else 0.0
+            rms_values[i] = np.sqrt(np.mean(chunk ** 2)) if len(chunk) > 0 else 0.0
+
+        # Threshold relativo: 30% del percentil 95 del RMS (ignora silencios y picos)
+        rms_95 = np.percentile(rms_values, 95)
+        threshold = rms_95 * DUCK_THRESHOLD_RATIO
+
+        voice_active = np.zeros(len(v_np), dtype=np.float32)
+        for i in range(num_windows):
+            start = i * window_size
+            end   = min(start + window_size, len(v_np))
+            voice_active[start:end] = 1.0 if rms_values[i] > threshold else 0.0
 
         # ── Aplicar ducking suave (attack/release) ─────────────────────────────
         attack_samples  = max(1, int(v_sr * ATTACK_MS  / 1000))
@@ -141,6 +150,7 @@ class OctopoztAutoMix:
             f"Voz:    RMS {v_rms:+.1f} dB → ajuste {voice_db:+.1f} dB\n"
             f"Música: RMS {m_rms:+.1f} dB → ajuste {music_db:+.1f} dB\n"
             f"Ducking durante voz: {duck_db:+.1f} dB\n"
+            f"Threshold voz: {threshold:.4f} (relativo)\n"
             f"Balance final: voz {VOICE_ABOVE_MUSIC:.0f} dB sobre música ✅"
         )
 
