@@ -4,8 +4,9 @@ import os
 
 class OctopoztPngToHDRI:
     """
-    Convierte una imagen (output de NanaBanana) a formato HDRI (.hdr o .exr)
-    para usarla como entorno 3D en Octopozt.
+    Convierte una imagen (output de NanaBanana) a formato HDRI (.hdr o .exr).
+    Outputs: hdri_path (STRING) para usar como ruta, e image (IMAGE) para
+    conectar directo a SaveImage u otros nodos de imagen.
     """
 
     @classmethod
@@ -19,8 +20,8 @@ class OctopoztPngToHDRI:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("hdri_path",)
+    RETURN_TYPES = ("IMAGE", "STRING",)
+    RETURN_NAMES = ("image", "hdri_path",)
     FUNCTION = "convert"
     CATEGORY = "Octopozt"
     OUTPUT_NODE = True
@@ -35,7 +36,7 @@ class OctopoztPngToHDRI:
         img_np = image[0].cpu().numpy().astype(np.float32)
 
         # Aplicar exposure para simular rango HDR
-        img_np = img_np * exposure
+        img_np_hdr = img_np * exposure
 
         # Asegurar carpeta de output
         output_dir = "/tmp/octopozt_hdri"
@@ -43,17 +44,15 @@ class OctopoztPngToHDRI:
         output_path = os.path.join(output_dir, f"{filename}.{format}")
 
         if format == "hdr":
-            # Formato Radiance HDR — soportado nativamente por imageio
-            iio.imwrite(output_path, img_np, extension=".hdr")
+            iio.imwrite(output_path, img_np_hdr, extension=".hdr")
         elif format == "exr":
             try:
                 import OpenEXR
                 import Imath
-                # Separar canales RGB
-                r = img_np[:, :, 0].tobytes()
-                g = img_np[:, :, 1].tobytes()
-                b = img_np[:, :, 2].tobytes()
-                h, w = img_np.shape[:2]
+                r = img_np_hdr[:, :, 0].tobytes()
+                g = img_np_hdr[:, :, 1].tobytes()
+                b = img_np_hdr[:, :, 2].tobytes()
+                h, w = img_np_hdr.shape[:2]
                 header = OpenEXR.Header(w, h)
                 header['channels'] = {
                     'R': Imath.Channel(Imath.PixelType(Imath.PixelType.FLOAT)),
@@ -64,12 +63,14 @@ class OctopoztPngToHDRI:
                 exr.writePixels({'R': r, 'G': g, 'B': b})
                 exr.close()
             except ImportError:
-                # Fallback: guardar como HDR si OpenEXR no está disponible
+                # Fallback a HDR si no hay OpenEXR
                 output_path = output_path.replace(".exr", ".hdr")
-                iio.imwrite(output_path, img_np, extension=".hdr")
+                iio.imwrite(output_path, img_np_hdr, extension=".hdr")
 
         print(f"[OctopoztPngToHDRI] Guardado en: {output_path}")
-        return (output_path,)
+
+        # Devolver el tensor original (sin exposure) para conectar a SaveImage
+        return (image, output_path,)
 
 
 NODE_CLASS_MAPPINGS = {
